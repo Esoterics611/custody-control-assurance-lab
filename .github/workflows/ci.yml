@@ -84,7 +84,13 @@ jobs:
   pages:
     name: publish assurance report
     needs: python
+    # Deploys only on push to main — i.e. when a PR is MERGED. Pull requests run the
+    # python + e2e validation jobs above but skip this deploy.
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # Serialize deploys so two quick merges can't race the Pages environment.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     permissions:
       pages: write
