@@ -35,6 +35,11 @@ src = ["src", "tests", "scripts"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "B"]
 
+[tool.ruff.lint.per-file-ignores]
+# The HTML report is a single inline template; long lines are intentional and
+# more readable kept whole than wrapped.
+"src/cal/assurance/report.py" = ["E501"]
+
 [tool.black]
 line-length = 100
 target-version = ["py312"]
