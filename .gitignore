@@ -6,9 +6,8 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 
-# uv / venv
+# uv / venv  (lockfile IS committed for reproducible installs)
 .venv/
-uv.lock
 
 # Playwright / Node
 node_modules/
