@@ -9,6 +9,9 @@ jobs:
   python:
     name: lint + pytest + assurance
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write  # upload SARIF to the code-scanning / Security tab
     steps:
       - uses: actions/checkout@v4
 
@@ -28,15 +31,26 @@ jobs:
       - name: Run tests
         run: uv run pytest -n auto
 
-      - name: Run assurance harness
+      - name: Run assurance harness (writes report + Navigator/SARIF/JUnit exports)
         run: uv run python scripts/run_assurance.py
 
-      - name: Upload assurance report
+      - name: Upload SARIF to code scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: reports/assurance.sarif
+        continue-on-error: true
+
+      - name: Upload assurance artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: assurance-report
-          path: reports/assurance.html
+          path: |
+            reports/assurance.html
+            reports/navigator-layer.json
+            reports/assurance.sarif
+            reports/assurance-junit.xml
           if-no-files-found: ignore
 
   e2e:

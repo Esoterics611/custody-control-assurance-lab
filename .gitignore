@@ -20,6 +20,8 @@ tests/e2e/.playwright/
 allure-results/
 reports/*.json
 reports/*.html
+reports/*.sarif
+reports/*.xml
 
 # Env / secrets (NEVER commit real secrets — this lab uses none)
 .env
