@@ -91,6 +91,10 @@ src/cal/
 Full prose: [`atlas/CONTROL_CATALOG.md`](atlas/CONTROL_CATALOG.md) · threat model:
 [`atlas/THREAT_MODEL.md`](atlas/THREAT_MODEL.md).
 
+> 📖 **New here? Read the [User Manual & Explanation](docs/USER_MANUAL.md)** — a full guide to
+> the concepts, every command and flag, the API, reading the report, the drift demo, the live
+> on-chain target, observability, and how to extend the lab.
+
 ## Quickstart
 
 ```bash
