@@ -41,9 +41,14 @@ a policy control is weakened.
 |-----------|--------------------|----------|
 | T1078 | Valid Accounts (unauthorized principal) | C-10 |
 | T1098 | Account Manipulation (privileged change) | C-12 |
-| T1548 | Abuse Elevation / control bypass (self-approval) | C-11 |
+| T1548 | Abuse Elevation / control bypass (self-approval, approver padding) | C-11, C-16 |
+| T1565 | Data Manipulation (replay, on-chain config/wiring) | C-13, OC-02, OC-03 |
 | T1567 | Exfiltration to external destination | C-01, C-02 |
-| T1657 | Financial Theft (limits, velocity, screening, type confusion) | C-03, C-04, C-05, C-06, C-07, C-08 |
+| T1657 | Financial Theft (limits, velocity, screening, type confusion, normalization) | C-03, C-04, C-05, C-06, C-07, C-08, C-15, OC-04, OC-05 |
+
+Integrity controls C-14 (Decimal-precision) and C-09 (Travel Rule) are regulatory/data
+properties with no single ATT&CK technique; they contribute to CSF coverage. The on-chain
+controls (OC-01..05) validate the same objectives against the real deployed protocol.
 
 ## NIST CSF 2.0 functions covered
 

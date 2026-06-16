@@ -1,0 +1,14 @@
+.git
+.venv
+node_modules
+tests/e2e/node_modules
+**/__pycache__
+.pytest_cache
+.ruff_cache
+reports/*.json
+reports/*.jsonl
+reports/*.html
+reports/*.sarif
+reports/*.xml
+docs/img
+.github
