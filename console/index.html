@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Custody Control Assurance — Security Console</title>
+<style>
+  :root { --bg:#0b0f14; --panel:#121a24; --line:#1f2b3a; --ink:#d7e2ef; --mut:#7f93a8;
+          --amber:#ffb020; --green:#39d98a; --red:#ff5d6c; --blue:#9fdcff; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font-family:"SFMono-Regular",ui-monospace,Menlo,Consolas,monospace; font-size:13px; }
+  header { padding:18px 24px; border-bottom:1px solid var(--line);
+           background:linear-gradient(180deg,#101824,#0b0f14); display:flex; justify-content:space-between; align-items:center; }
+  h1 { margin:0; font-size:16px; letter-spacing:.5px; }
+  h1 .amber { color:var(--amber); }
+  .scope { color:var(--mut); font-size:11px; }
+  main { display:grid; grid-template-columns:1fr 1fr; gap:16px; padding:20px 24px; max-width:1180px; margin:0 auto; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px; }
+  .panel h2 { margin:0 0 12px; font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--amber); }
+  .span2 { grid-column:1 / -1; }
+  label { display:block; color:var(--mut); font-size:11px; margin:8px 0 3px; }
+  input, select { width:100%; background:#0c141d; border:1px solid var(--line); color:var(--ink);
+                  border-radius:6px; padding:7px 9px; font-family:inherit; font-size:13px; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  button { background:var(--amber); color:#1a1206; border:none; border-radius:6px; padding:9px 14px;
+           font-weight:700; font-family:inherit; cursor:pointer; margin-top:12px; }
+  button.ghost { background:transparent; color:var(--mut); border:1px solid var(--line); font-weight:600;
+                 padding:5px 10px; margin:0; }
+  .presets { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px; }
+  .result { margin-top:14px; padding:12px; border-radius:8px; border:1px solid var(--line);
+            background:#0c141d; min-height:46px; }
+  .decision { font-weight:700; font-size:15px; }
+  .ALLOW { color:var(--green); } .BLOCK { color:var(--red); } .REQUIRE_APPROVAL { color:var(--amber); }
+  .pill { display:inline-block; font-size:11px; padding:2px 8px; border-radius:20px; border:1px solid var(--line); color:var(--mut); margin-left:8px; }
+  .alerts { margin-top:8px; font-size:11px; color:var(--blue); }
+  .alerts div { padding:2px 0; }
+  .summary { font-size:13px; margin-bottom:10px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; }
+  .cell { border:1px solid var(--line); border-left:3px solid var(--line); border-radius:6px; padding:8px 10px; background:#0c141d; }
+  .cell[data-state="pass"] { border-left-color:var(--green); }
+  .cell[data-state="fail"] { border-left-color:var(--red); }
+  .cell .cid { font-weight:700; color:var(--amber); }
+  .cell .st { float:right; font-size:10px; font-weight:700; }
+  .cell[data-state="pass"] .st { color:var(--green); }
+  .cell[data-state="fail"] .st { color:var(--red); }
+  .cell .ob { color:var(--mut); font-size:10px; margin-top:4px; }
+  .cov { display:flex; gap:24px; margin-top:12px; flex-wrap:wrap; }
+  .cov h3 { font-size:11px; color:var(--mut); text-transform:uppercase; letter-spacing:.6px; margin:0 0 6px; }
+  .cov code { color:var(--blue); }
+  .muted { color:var(--mut); font-size:11px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>CUSTODY CONTROL <span class="amber">ASSURANCE</span> // Security Console</h1>
+  <span class="scope">SYNTHETIC · DEFENSIVE · no real keys / feeds / credentials</span>
+</header>
+
+<main>
+  <!-- ============ Submit transaction ============ -->
+  <section class="panel" data-testid="panel-submit">
+    <h2>Submit transaction</h2>
+    <div class="presets">
+      <button class="ghost" data-testid="preset-clean" onclick="preset('clean')">clean transfer</button>
+      <button class="ghost" data-testid="preset-sanctioned" onclick="preset('sanctioned')">sanctioned dest</button>
+      <button class="ghost" data-testid="preset-overlimit" onclick="preset('overlimit')">over-limit</button>
+      <button class="ghost" data-testid="preset-onetime" onclick="preset('onetime')">large one-time</button>
+    </div>
+    <div class="row">
+      <div><label>Initiator</label><input id="initiator" data-testid="tx-initiator" value="dave"/></div>
+      <div><label>Source vault</label><input id="source_vault" data-testid="tx-source-vault" value="1"/></div>
+    </div>
+    <label>Destination address</label>
+    <input id="destination" data-testid="tx-destination" value="0xCLEAN0000000000000000000000000000000000099"/>
+    <div class="row">
+      <div>
+        <label>Destination type</label>
+        <select id="destination_type" data-testid="tx-destination-type">
+          <option>WHITELISTED</option><option>ONE_TIME</option>
+          <option>INTERNAL_VAULT</option><option>UNMANAGED_CONTRACT</option>
+        </select>
+      </div>
+      <div>
+        <label>Transaction type</label>
+        <select id="tx_type" data-testid="tx-type">
+          <option>TRANSFER</option><option>CONTRACT_CALL</option><option>APPROVE</option>
+          <option>MINT</option><option>BURN</option><option>STAKE</option>
+        </select>
+      </div>
+    </div>
+    <div class="row">
+      <div><label>Asset</label><input id="asset" data-testid="tx-asset" value="USDC"/></div>
+      <div><label>Amount (USD)</label><input id="amount_usd" data-testid="tx-amount" value="5000"/></div>
+    </div>
+    <label>Approvers (comma-separated, optional)</label>
+    <input id="approvers" data-testid="tx-approvers" placeholder="e.g. alice,bob"/>
+    <button data-testid="submit-tx" onclick="submitTx()">Submit transaction</button>
+    <div class="result" data-testid="tx-result" data-decision="">
+      <span class="muted">No transaction submitted yet.</span>
+    </div>
+  </section>
+
+  <!-- ============ Policy change (quorum gate) ============ -->
+  <section class="panel" data-testid="panel-policy">
+    <h2>Policy change · admin-quorum gate</h2>
+    <p class="muted">Attempt to loosen the policy to "allow everything". Requires a quorum
+      of <b>2 distinct admins</b> (admins: alice, bob, carol). A single admin is rejected.</p>
+    <label>Approving admins (comma-separated)</label>
+    <input id="policy_approvers" data-testid="policy-approvers" value="alice"/>
+    <button data-testid="submit-policy-change" onclick="changePolicy()">Attempt policy change</button>
+    <div class="result" data-testid="policy-result" data-status="">
+      <span class="muted">No policy change attempted yet.</span>
+    </div>
+  </section>
+
+  <!-- ============ Control assurance ============ -->
+  <section class="panel span2" data-testid="panel-assurance">
+    <h2>Control assurance · Breach &amp; Attack Simulation</h2>
+    <button data-testid="run-assurance" onclick="runAssurance()">Run assurance</button>
+    <div class="result" data-testid="assurance-summary"><span class="muted">Assurance not run yet.</span></div>
+    <div class="grid" data-testid="assurance-grid"></div>
+    <div class="cov">
+      <div class="cov"><div><h3>NIST CSF 2.0</h3><div data-testid="csf-coverage" class="muted">—</div></div></div>
+      <div class="cov"><div><h3>MITRE ATT&amp;CK</h3><div data-testid="mitre-coverage" class="muted">—</div></div></div>
+    </div>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const PRESETS = {
+  clean:      { destination:"0xCLEAN0000000000000000000000000000000000099", destination_type:"WHITELISTED", tx_type:"TRANSFER", amount_usd:"5000", approvers:"" },
+  sanctioned: { destination:"0xSANCTIONED00000000000000000000000000000001", destination_type:"WHITELISTED", tx_type:"TRANSFER", amount_usd:"5000", approvers:"" },
+  overlimit:  { destination:"0xCLEAN0000000000000000000000000000000000099", destination_type:"WHITELISTED", tx_type:"TRANSFER", amount_usd:"250000", approvers:"" },
+  onetime:    { destination:"0xEXTERNAL0000000000000000000000000000000777", destination_type:"ONE_TIME", tx_type:"TRANSFER", amount_usd:"15000", approvers:"" },
+};
+function preset(name) {
+  const p = PRESETS[name];
+  $("destination").value = p.destination;
+  $("destination_type").value = p.destination_type;
+  $("tx_type").value = p.tx_type;
+  $("amount_usd").value = p.amount_usd;
+  $("approvers").value = p.approvers;
+}
+
+async function submitTx() {
+  const approvers = $("approvers").value.split(",").map(s => s.trim()).filter(Boolean);
+  const body = {
+    initiator: $("initiator").value,
+    source_vault: $("source_vault").value,
+    destination: $("destination").value,
+    destination_type: $("destination_type").value,
+    asset: $("asset").value,
+    amount_usd: $("amount_usd").value,
+    tx_type: $("tx_type").value,
+    approver_ids: approvers.length ? approvers : null,
+  };
+  const r = await fetch("/transactions", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(body) });
+  const d = await r.json();
+  const el = document.querySelector('[data-testid="tx-result"]');
+  el.setAttribute("data-decision", d.decision);
+  el.setAttribute("data-stage", d.stage);
+  const alerts = (d.alerts || []).map(a => `<div>• ${a}</div>`).join("");
+  el.innerHTML =
+    `<span class="decision ${d.decision}" data-testid="tx-decision">${d.decision}</span>` +
+    `<span class="pill" data-testid="tx-stage">stage: ${d.stage}</span>` +
+    `<span class="pill">signed: ${d.signed}</span>` +
+    `<div class="muted" data-testid="tx-reason" style="margin-top:8px">${d.reason || ""}</div>` +
+    `<div class="alerts" data-testid="tx-alerts">${alerts}</div>`;
+}
+
+async function changePolicy() {
+  const approvers = $("policy_approvers").value.split(",").map(s => s.trim()).filter(Boolean);
+  const body = { new_rules:[{ name:"allow_all", action:"ALLOW" }], approver_ids: approvers };
+  const r = await fetch("/policy/change", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(body) });
+  const d = await r.json();
+  const el = document.querySelector('[data-testid="policy-result"]');
+  if (r.status === 200) {
+    el.setAttribute("data-status", "applied");
+    el.innerHTML = `<span class="decision ALLOW">APPLIED</span><div class="muted" style="margin-top:6px">Authorized by: ${(d.authorized_by||[]).join(", ")}</div>`;
+  } else {
+    el.setAttribute("data-status", "denied");
+    el.innerHTML = `<span class="decision BLOCK">DENIED (403)</span><div class="muted" data-testid="policy-error" style="margin-top:6px">${d.error}</div>`;
+  }
+}
+
+function coverageText(cov) {
+  return Object.entries(cov).map(([k,v]) => `<code>${k}</code> ${v.passed}/${v.total}`).join(" &nbsp; ");
+}
+
+async function runAssurance() {
+  const r = await fetch("/assurance/run", { method:"POST" });
+  const d = await r.json();
+  const s = d.summary;
+  const sumEl = document.querySelector('[data-testid="assurance-summary"]');
+  sumEl.setAttribute("data-all-passed", s.all_passed);
+  sumEl.innerHTML =
+    `<span class="decision ${s.all_passed ? 'ALLOW' : 'BLOCK'}">${s.passed}/${s.total} controls passing</span>` +
+    `<span class="pill">failing: ${s.failed}</span>`;
+  const grid = document.querySelector('[data-testid="assurance-grid"]');
+  grid.innerHTML = d.outcomes.map(o => {
+    const state = o.passed ? "pass" : "fail";
+    return `<div class="cell" data-testid="assurance-cell" data-control="${o.id}" data-state="${state}">` +
+           `<span class="cid">${o.id}</span><span class="st">${o.passed ? "PASS" : "FAIL"}</span>` +
+           `<div class="ob">${o.observed}</div></div>`;
+  }).join("");
+  document.querySelector('[data-testid="csf-coverage"]').innerHTML = coverageText(d.csf_coverage);
+  document.querySelector('[data-testid="mitre-coverage"]').innerHTML = coverageText(d.mitre_coverage);
+}
+</script>
+</body>
+</html>
