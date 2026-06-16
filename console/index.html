@@ -197,7 +197,8 @@ async function runAssurance() {
   sumEl.setAttribute("data-all-passed", s.all_passed);
   sumEl.innerHTML =
     `<span class="decision ${s.all_passed ? 'ALLOW' : 'BLOCK'}">${s.passed}/${s.total} controls passing</span>` +
-    `<span class="pill">failing: ${s.failed}</span>`;
+    `<span class="pill">failing: ${s.failed}</span>` +
+    `<span class="pill" data-testid="assurance-posture">posture: ${s.posture_score}/100 · ${s.risk_rating}</span>`;
   const grid = document.querySelector('[data-testid="assurance-grid"]');
   grid.innerHTML = d.outcomes.map(o => {
     const state = o.passed ? "pass" : "fail";

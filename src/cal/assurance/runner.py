@@ -39,6 +39,8 @@ class ControlOutcome:
             "mitre_techniques": list(self.control.mitre_techniques),
             "csf_functions": list(self.control.csf_functions),
             "simulation": self.control.simulation,
+            "severity": self.control.severity.value,
+            "weight": self.control.weight,
             "passed": self.result.passed,
             "skipped": self.result.skipped,
             "state": self.state,
@@ -78,6 +80,29 @@ class AssuranceReport:
         # Skipped controls do not count as failures (e.g. on-chain target offline).
         return self.failed == 0
 
+    @property
+    def posture_score(self) -> int:
+        """Severity-weighted pass rate over evaluated (non-skipped) controls, 0-100."""
+        evaluated = [o for o in self.outcomes if not o.skipped]
+        total_weight = sum(o.control.weight for o in evaluated)
+        if not total_weight:
+            return 0
+        earned = sum(o.control.weight for o in evaluated if o.passed)
+        return round(100 * earned / total_weight)
+
+    @property
+    def risk_rating(self) -> str:
+        score = self.posture_score
+        if score == 100:
+            return "A — strong"
+        if score >= 90:
+            return "B — adequate"
+        if score >= 75:
+            return "C — needs attention"
+        if score >= 50:
+            return "D — at risk"
+        return "F — critical exposure"
+
     def to_dict(self) -> dict:
         return {
             "generated_at": self.generated_at,
@@ -87,6 +112,8 @@ class AssuranceReport:
                 "failed": self.failed,
                 "skipped": self.skipped,
                 "all_passed": self.all_passed,
+                "posture_score": self.posture_score,
+                "risk_rating": self.risk_rating,
             },
             "outcomes": [o.to_dict() for o in self.outcomes],
             "csf_coverage": self.csf_coverage,

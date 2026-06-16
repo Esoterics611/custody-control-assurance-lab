@@ -39,6 +39,24 @@ def test_coverage_buckets_are_computed():
     assert all(tag for tag in report.mitre_coverage)
 
 
+def test_posture_score_is_100_when_all_pass():
+    report = run_all(clock=CLOCK)
+    assert report.posture_score == 100
+    assert report.risk_rating.startswith("A")
+
+
+def test_posture_score_drops_below_100_on_critical_failures():
+    def factory():
+        platform = build_reference_platform()
+        platform.policy_engine.rules = [PolicyRule(name="allow_all", action=Decision.ALLOW)]
+        return platform
+
+    report = run_all(factory, clock=CLOCK)
+    assert not report.all_passed
+    assert report.posture_score < 100
+    assert report.risk_rating[0] in {"B", "C", "D", "F"}
+
+
 class TestNegativeControl:
     """Deliberately break a control and prove the harness reports the regression."""
 

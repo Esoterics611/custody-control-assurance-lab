@@ -7,6 +7,23 @@ assurance report. It mirrors atlas/CONTROL_CATALOG.md.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import StrEnum
+
+
+class Severity(StrEnum):
+    CRITICAL = "critical"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+
+
+# Weight each control by severity for the posture score (a weighted pass rate).
+SEVERITY_WEIGHT: dict[Severity, int] = {
+    Severity.CRITICAL: 10,
+    Severity.HIGH: 5,
+    Severity.MEDIUM: 2,
+    Severity.LOW: 1,
+}
 
 
 @dataclass(frozen=True)
@@ -17,6 +34,11 @@ class Control:
     mitre_techniques: tuple[str, ...]
     csf_functions: tuple[str, ...]
     simulation: str
+    severity: Severity = Severity.HIGH
+
+    @property
+    def weight(self) -> int:
+        return SEVERITY_WEIGHT[self.severity]
 
 
 CONTROL_REGISTRY: tuple[Control, ...] = (
@@ -59,6 +81,7 @@ CONTROL_REGISTRY: tuple[Control, ...] = (
         ("T1657",),
         ("GV.PO",),
         "sim_rule_shadowing",
+        Severity.MEDIUM,
     ),
     Control(
         "C-06",
@@ -75,6 +98,7 @@ CONTROL_REGISTRY: tuple[Control, ...] = (
         ("T1657",),
         ("DE.AE", "RS.MA"),
         "sim_sanctioned_dest",
+        Severity.CRITICAL,
     ),
     Control(
         "C-08",
@@ -91,6 +115,7 @@ CONTROL_REGISTRY: tuple[Control, ...] = (
         (),
         ("GV.OC",),
         "sim_travel_rule",
+        Severity.MEDIUM,
     ),
     Control(
         "C-10",
@@ -107,6 +132,7 @@ CONTROL_REGISTRY: tuple[Control, ...] = (
         ("T1548",),
         ("GV.RR",),
         "sim_self_approval",
+        Severity.CRITICAL,
     ),
     Control(
         "C-12",
@@ -115,6 +141,7 @@ CONTROL_REGISTRY: tuple[Control, ...] = (
         ("T1098",),
         ("GV.RR", "GV.PO"),
         "sim_quorum_bypass",
+        Severity.CRITICAL,
     ),
     Control(
         "C-13",
@@ -123,6 +150,7 @@ CONTROL_REGISTRY: tuple[Control, ...] = (
         ("T1565",),
         ("PR.DS",),
         "sim_replay_protection",
+        Severity.CRITICAL,
     ),
     Control(
         "C-14",
@@ -131,6 +159,7 @@ CONTROL_REGISTRY: tuple[Control, ...] = (
         (),
         ("PR.DS",),
         "sim_decimal_precision",
+        Severity.MEDIUM,
     ),
     Control(
         "C-15",

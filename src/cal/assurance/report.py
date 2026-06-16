@@ -47,7 +47,7 @@ def _control_cards(report: AssuranceReport) -> str:
         <div class="card {state}" data-testid="control-card" data-control="{c.id}" data-state="{state}">
           <div class="card-head"><span class="cid">{c.id}</span><span class="badge {state}" data-testid="control-state">{badge}</span></div>
           <div class="obj">{html.escape(c.objective)}</div>
-          <div class="meta"><span class="chip">{html.escape(c.stage)}</span><span class="chip att">{html.escape(mitre)}</span><span class="chip csf">{html.escape(csf)}</span></div>
+          <div class="meta"><span class="chip sev sev-{c.severity.value}">{c.severity.value}</span><span class="chip">{html.escape(c.stage)}</span><span class="chip att">{html.escape(mitre)}</span><span class="chip csf">{html.escape(csf)}</span></div>
           <div class="exp"><b>expected</b> {html.escape(outcome.result.expected)}</div>
           <div class="obs"><b>observed</b> {html.escape(outcome.result.observed)}</div>
         </div>""")
@@ -65,8 +65,6 @@ def _drift_section(report: AssuranceReport) -> str:
 
 
 def render_html(report: AssuranceReport) -> str:
-    evaluated = report.passed + report.failed
-    pass_pct = round(100 * report.passed / evaluated) if evaluated else 0
     summary_state = "ok" if report.all_passed else "bad"
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -111,6 +109,11 @@ def render_html(report: AssuranceReport) -> str:
   .chip {{ font-size:10px; color:var(--mut); border:1px solid var(--line);
            padding:2px 7px; border-radius:6px; }}
   .chip.att {{ color:#9fdcff; }} .chip.csf {{ color:#ffd79a; }}
+  .chip.sev {{ text-transform:uppercase; font-weight:700; letter-spacing:.4px; }}
+  .chip.sev-critical {{ color:var(--red); border-color:rgba(255,93,108,.5); }}
+  .chip.sev-high {{ color:var(--amber); border-color:rgba(255,176,32,.5); }}
+  .chip.sev-medium {{ color:var(--blue); border-color:rgba(159,220,255,.4); }}
+  .chip.sev-low {{ color:var(--mut); }}
   .exp,.obs {{ font-size:11px; color:var(--mut); margin-top:4px; }}
   .exp b,.obs b {{ color:var(--ink); font-weight:600; margin-right:6px; }}
   .cov {{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px 18px; }}
@@ -121,6 +124,8 @@ def render_html(report: AssuranceReport) -> str:
   .cov-fill.ok {{ background:var(--green); }} .cov-fill.bad {{ background:var(--amber); }}
   .cov-num {{ width:48px; text-align:right; font-size:12px; color:var(--mut); }}
   .cols {{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }}
+  .rating {{ margin:-8px 0 4px; font-size:12px; color:var(--mut); }}
+  .rating b {{ color:var(--ink); }} .rating.bad b {{ color:var(--red); }} .rating.ok b {{ color:var(--green); }}
   .drift {{ margin-top:22px; padding:14px 18px; border-radius:10px; font-size:13px; }}
   .drift.none {{ background:rgba(57,217,138,.08); border:1px solid rgba(57,217,138,.3); color:var(--green); }}
   .drift.regressed {{ background:rgba(255,93,108,.1); border:1px solid rgba(255,93,108,.4); color:var(--red); }}
@@ -139,8 +144,9 @@ def render_html(report: AssuranceReport) -> str:
     <div class="kpi ok"><div class="n" data-testid="kpi-passed">{report.passed}</div><div class="l">Passing</div></div>
     <div class="kpi {summary_state}"><div class="n" data-testid="kpi-failed">{report.failed}</div><div class="l">Failing</div></div>
     <div class="kpi"><div class="n" data-testid="kpi-skipped">{report.skipped}</div><div class="l">Skipped</div></div>
-    <div class="kpi {summary_state}"><div class="n">{pass_pct}%</div><div class="l">Coverage</div></div>
+    <div class="kpi {summary_state}"><div class="n" data-testid="kpi-posture">{report.posture_score}</div><div class="l">Posture / 100</div></div>
   </div>
+  <div class="rating {summary_state}" data-testid="risk-rating">Risk posture: <b>{html.escape(report.risk_rating)}</b> · severity-weighted across {report.passed + report.failed} evaluated controls</div>
 
   {_drift_section(report)}
 

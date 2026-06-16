@@ -54,6 +54,7 @@ def _print_table(title: str, report: AssuranceReport) -> None:
     if report.skipped:
         line += f" | skipped: {report.skipped}"
     print(line)
+    print(f"  posture score: {report.posture_score}/100  [{report.risk_rating}]")
     if report.drift:
         print(f"  ⚠ DRIFT — regressed controls: {', '.join(report.drift)}")
 

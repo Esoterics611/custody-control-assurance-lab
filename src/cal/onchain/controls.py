@@ -6,7 +6,7 @@ and remain correctly wired — the on-chain analogue of the mock control catalog
 
 from __future__ import annotations
 
-from cal.assurance.controls import Control
+from cal.assurance.controls import Control, Severity
 
 ONCHAIN_CONTROL_REGISTRY: tuple[Control, ...] = (
     Control(
@@ -16,6 +16,7 @@ ONCHAIN_CONTROL_REGISTRY: tuple[Control, ...] = (
         (),
         ("ID.AM", "GV.OC"),
         "oc_reachability",
+        Severity.MEDIUM,
     ),
     Control(
         "OC-02",
@@ -24,6 +25,7 @@ ONCHAIN_CONTROL_REGISTRY: tuple[Control, ...] = (
         ("T1565",),
         ("PR.PS", "DE.CM"),
         "oc_restriction_wiring",
+        Severity.CRITICAL,
     ),
     Control(
         "OC-03",
@@ -32,6 +34,7 @@ ONCHAIN_CONTROL_REGISTRY: tuple[Control, ...] = (
         ("T1565",),
         ("PR.AA", "DE.CM"),
         "oc_kyc_wiring",
+        Severity.CRITICAL,
     ),
     Control(
         "OC-04",
