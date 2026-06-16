@@ -114,3 +114,25 @@ self-approval is dropped, leaving the transaction `REQUIRE_APPROVAL` (pending).
 **Threat.** A single admin unilaterally loosening controls (the highest-leverage attack).
 **Validation.** `sim_quorum_bypass` attempts a single-admin policy change; the governor
 raises `QuorumError` and the simulation confirms the policy is unchanged afterwards.
+
+---
+
+# On-chain control catalog (live target)
+
+The same control-validation discipline, pointed at a **real deployed** institutional
+digital-asset protocol — `nexus-protocol` on **Base Sepolia** (public testnet). Strictly
+READ-ONLY (`eth_call`): no transaction is ever sent, no key is held. When web3 isn't
+installed or the RPC is unreachable, these report **SKIPPED** (never failed) so CI stays
+green. Run with `uv run python scripts/run_assurance.py --target onchain`.
+
+| ID | Control objective | Stage | MITRE | NIST CSF 2.0 | Simulation |
+|----|------------------|-------|-------|--------------|------------|
+| OC-01 | Custody contracts deployed & reachable (stablecoin decimals == 6) | Infra | — | ID.AM / GV.OC | `oc_reachability` |
+| OC-02 | Restriction-list wiring intact (TransferRestrictions → expected RestrictionList) | Compliance | T1565 | PR.PS / DE.CM | `oc_restriction_wiring` |
+| OC-03 | KYC-registry wiring intact (TransferRestrictions → expected KYCRegistry) | Compliance | T1565 | PR.AA / DE.CM | `oc_kyc_wiring` |
+| OC-04 | Denylist surface functional (unknown not restricted, transfer-check live) | Screening | T1657 | DE.AE | `oc_denylist_functional` |
+| OC-05 | Mint-ceiling control present (MintController.remainingAllocation callable) | Governance | T1657 | GV.PO | `oc_mint_ceiling` |
+
+**OC-02 / OC-03 are genuine drift detection on production state:** if an operator repointed
+`TransferRestrictions` away from the real `RestrictionList`/`KYCRegistry` (silently disabling
+the denylist or KYC gate), these turn red — the on-chain analogue of the mock drift demo.

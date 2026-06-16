@@ -21,6 +21,16 @@ class ControlOutcome:
     def passed(self) -> bool:
         return self.result.passed
 
+    @property
+    def skipped(self) -> bool:
+        return self.result.skipped
+
+    @property
+    def state(self) -> str:
+        if self.skipped:
+            return "skip"
+        return "pass" if self.passed else "fail"
+
     def to_dict(self) -> dict:
         return {
             "id": self.control.id,
@@ -30,6 +40,8 @@ class ControlOutcome:
             "csf_functions": list(self.control.csf_functions),
             "simulation": self.control.simulation,
             "passed": self.result.passed,
+            "skipped": self.result.skipped,
+            "state": self.state,
             "expected": self.result.expected,
             "observed": self.result.observed,
             "detail": self.result.detail,
@@ -51,14 +63,19 @@ class AssuranceReport:
 
     @property
     def passed(self) -> int:
-        return sum(1 for o in self.outcomes if o.passed)
+        return sum(1 for o in self.outcomes if o.passed and not o.skipped)
+
+    @property
+    def skipped(self) -> int:
+        return sum(1 for o in self.outcomes if o.skipped)
 
     @property
     def failed(self) -> int:
-        return self.total - self.passed
+        return self.total - self.passed - self.skipped
 
     @property
     def all_passed(self) -> bool:
+        # Skipped controls do not count as failures (e.g. on-chain target offline).
         return self.failed == 0
 
     def to_dict(self) -> dict:
@@ -68,6 +85,7 @@ class AssuranceReport:
                 "total": self.total,
                 "passed": self.passed,
                 "failed": self.failed,
+                "skipped": self.skipped,
                 "all_passed": self.all_passed,
             },
             "outcomes": [o.to_dict() for o in self.outcomes],
@@ -81,6 +99,8 @@ class AssuranceReport:
 def _coverage(outcomes: list[ControlOutcome], key: Callable[[Control], tuple[str, ...]]):
     coverage: dict[str, dict[str, int]] = {}
     for outcome in outcomes:
+        if outcome.skipped:
+            continue
         for tag in key(outcome.control):
             bucket = coverage.setdefault(tag, {"total": 0, "passed": 0})
             bucket["total"] += 1
@@ -89,26 +109,20 @@ def _coverage(outcomes: list[ControlOutcome], key: Callable[[Control], tuple[str
     return dict(sorted(coverage.items()))
 
 
-def run_all(
-    platform_factory: Callable[[], CustodyPlatform] = build_reference_platform,
+def aggregate(
+    outcomes: list[ControlOutcome],
     *,
     baseline: Mapping[str, bool] | None = None,
     clock: Clock = system_clock,
 ) -> AssuranceReport:
-    """Run every registered simulation against a fresh platform and aggregate."""
-    outcomes: list[ControlOutcome] = []
-    for control in CONTROL_REGISTRY:
-        simulation = SIMULATIONS[control.simulation]
-        result = simulation(platform_factory())
-        outcomes.append(ControlOutcome(control=control, result=result))
-
-    failures = [o.control.id for o in outcomes if not o.passed]
+    """Build an AssuranceReport from outcomes (shared by mock + on-chain runners)."""
+    failures = [o.control.id for o in outcomes if not o.passed and not o.skipped]
 
     drift: list[str] = []
     if baseline is not None:
         for outcome in outcomes:
             was_passing = baseline.get(outcome.control.id, False)
-            if was_passing and not outcome.passed:
+            if was_passing and not outcome.passed and not outcome.skipped:
                 drift.append(outcome.control.id)
 
     return AssuranceReport(
@@ -119,6 +133,20 @@ def run_all(
         failures=failures,
         drift=drift,
     )
+
+
+def run_all(
+    platform_factory: Callable[[], CustodyPlatform] = build_reference_platform,
+    *,
+    baseline: Mapping[str, bool] | None = None,
+    clock: Clock = system_clock,
+) -> AssuranceReport:
+    """Run every registered (mock) simulation against a fresh platform and aggregate."""
+    outcomes = [
+        ControlOutcome(control=control, result=SIMULATIONS[control.simulation](platform_factory()))
+        for control in CONTROL_REGISTRY
+    ]
+    return aggregate(outcomes, baseline=baseline, clock=clock)
 
 
 def baseline_from_report(report: AssuranceReport) -> dict[str, bool]:

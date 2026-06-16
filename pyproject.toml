@@ -20,6 +20,14 @@ dev = [
     "black>=24.4",
 ]
 
+[project.optional-dependencies]
+# Optional: the live on-chain assurance target (reads PUBLIC testnet contracts).
+# Install with `uv sync --extra onchain`. The core lab never imports web3 unless
+# the on-chain target is actually used, so this stays out of the default install.
+onchain = [
+    "web3>=6.0",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

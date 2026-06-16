@@ -34,6 +34,14 @@ class SimResult:
     expected: str
     observed: str
     detail: str = ""
+    skipped: bool = False
+
+    @classmethod
+    def skip(cls, control_id: str, reason: str) -> SimResult:
+        """A simulation that could not run (e.g. on-chain target unavailable)."""
+        return cls(
+            control_id, False, expected="n/a", observed="skipped", detail=reason, skipped=True
+        )
 
     def to_dict(self) -> dict:
         return {
@@ -42,6 +50,7 @@ class SimResult:
             "expected": self.expected,
             "observed": self.observed,
             "detail": self.detail,
+            "skipped": self.skipped,
         }
 
 

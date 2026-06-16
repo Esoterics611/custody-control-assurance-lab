@@ -39,8 +39,8 @@ def _control_cards(report: AssuranceReport) -> str:
     cards = []
     for outcome in report.outcomes:
         c = outcome.control
-        state = "pass" if outcome.passed else "fail"
-        badge = "PASS" if outcome.passed else "FAIL"
+        state = outcome.state
+        badge = {"pass": "PASS", "fail": "FAIL", "skip": "SKIP"}[state]
         mitre = ", ".join(c.mitre_techniques) or "—"
         csf = ", ".join(c.csf_functions)
         cards.append(f"""
@@ -65,7 +65,8 @@ def _drift_section(report: AssuranceReport) -> str:
 
 
 def render_html(report: AssuranceReport) -> str:
-    pass_pct = round(100 * report.passed / report.total) if report.total else 0
+    evaluated = report.passed + report.failed
+    pass_pct = round(100 * report.passed / evaluated) if evaluated else 0
     summary_state = "ok" if report.all_passed else "bad"
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -98,11 +99,13 @@ def render_html(report: AssuranceReport) -> str:
            border-radius:8px; padding:14px; }}
   .card.pass {{ border-left-color:var(--green); }}
   .card.fail {{ border-left-color:var(--red); box-shadow:0 0 0 1px rgba(255,93,108,.25) inset; }}
+  .card.skip {{ border-left-color:var(--mut); opacity:.7; }}
   .card-head {{ display:flex; justify-content:space-between; align-items:center; }}
   .cid {{ font-weight:700; color:var(--amber); }}
   .badge {{ font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px; }}
   .badge.pass {{ background:rgba(57,217,138,.14); color:var(--green); }}
   .badge.fail {{ background:rgba(255,93,108,.16); color:var(--red); }}
+  .badge.skip {{ background:rgba(127,147,168,.16); color:var(--mut); }}
   .obj {{ margin:8px 0; font-size:13px; line-height:1.45; }}
   .meta {{ display:flex; gap:6px; flex-wrap:wrap; margin:8px 0; }}
   .chip {{ font-size:10px; color:var(--mut); border:1px solid var(--line);
@@ -135,6 +138,7 @@ def render_html(report: AssuranceReport) -> str:
     <div class="kpi"><div class="n" data-testid="kpi-total">{report.total}</div><div class="l">Controls</div></div>
     <div class="kpi ok"><div class="n" data-testid="kpi-passed">{report.passed}</div><div class="l">Passing</div></div>
     <div class="kpi {summary_state}"><div class="n" data-testid="kpi-failed">{report.failed}</div><div class="l">Failing</div></div>
+    <div class="kpi"><div class="n" data-testid="kpi-skipped">{report.skipped}</div><div class="l">Skipped</div></div>
     <div class="kpi {summary_state}"><div class="n">{pass_pct}%</div><div class="l">Coverage</div></div>
   </div>
 

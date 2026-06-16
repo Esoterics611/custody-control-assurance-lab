@@ -1,0 +1,38 @@
+{
+  "_comment": "PUBLIC Base Sepolia (testnet) deployment of the nexus-protocol compliance/governance stack. These are PUBLIC contract addresses on a public testnet — NO secrets, NO private keys. Used only for READ-ONLY (eth_call) control validation; the lab never sends a transaction. Minimal ABIs include only the view functions the on-chain simulations call.",
+  "chain": {
+    "name": "Base Sepolia",
+    "chain_id": 84532,
+    "rpc_url": "https://base-sepolia-rpc.publicnode.com",
+    "explorer": "https://sepolia.basescan.org"
+  },
+  "addresses": {
+    "stablecoin": "0x82671ab3119c8f73acc0ee43c6b167b46b948141",
+    "mintController": "0xee9b15f35ea7a9920c38ac1aacd5af265931886a",
+    "restrictionList": "0xea1ea3239ac1731acb6cffbe666fa6ff55e5a669",
+    "kycRegistry": "0xadac3b940503626d5c72e202bf165c572d3ea11a",
+    "transferRestrictions": "0xbaa4050fef138f3f9dc19373db6b57860059c5a9",
+    "auditLog": "0xbf2f6169366b4971b6a1918af34b13f04ad1cc2c"
+  },
+  "abis": {
+    "stablecoin": [
+      {"name": "decimals", "inputs": [], "outputs": [{"type": "uint8"}], "stateMutability": "view", "type": "function"},
+      {"name": "symbol", "inputs": [], "outputs": [{"type": "string"}], "stateMutability": "view", "type": "function"}
+    ],
+    "transferRestrictions": [
+      {"name": "restrictionList", "inputs": [], "outputs": [{"type": "address"}], "stateMutability": "view", "type": "function"},
+      {"name": "kycRegistry", "inputs": [], "outputs": [{"type": "address"}], "stateMutability": "view", "type": "function"},
+      {"name": "kycRequired", "inputs": [], "outputs": [{"type": "bool"}], "stateMutability": "view", "type": "function"},
+      {"name": "isTransferAllowed", "inputs": [{"type": "address"}, {"type": "address"}, {"type": "uint256"}], "outputs": [{"type": "bool"}], "stateMutability": "view", "type": "function"}
+    ],
+    "restrictionList": [
+      {"name": "isRestricted", "inputs": [{"type": "address"}], "outputs": [{"type": "bool"}], "stateMutability": "view", "type": "function"}
+    ],
+    "kycRegistry": [
+      {"name": "isVerified", "inputs": [{"type": "address"}], "outputs": [{"type": "bool"}], "stateMutability": "view", "type": "function"}
+    ],
+    "mintController": [
+      {"name": "remainingAllocation", "inputs": [{"type": "address"}], "outputs": [{"type": "uint256"}], "stateMutability": "view", "type": "function"}
+    ]
+  }
+}
