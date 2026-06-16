@@ -19,6 +19,7 @@ tests/e2e/.playwright/
 # Reports / artifacts
 allure-results/
 reports/*.json
+reports/*.jsonl
 reports/*.html
 reports/*.sarif
 reports/*.xml

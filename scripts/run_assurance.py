@@ -27,6 +27,7 @@ from cal.assurance.exports import (  # noqa: E402
     write_navigator_layer,
     write_sarif,
 )
+from cal.assurance.history import append_history, load_history  # noqa: E402
 from cal.assurance.report import write_html, write_json  # noqa: E402
 from cal.assurance.runner import AssuranceReport, run_all  # noqa: E402
 from cal.custody.reference import build_reference_platform  # noqa: E402
@@ -87,7 +88,8 @@ def main() -> int:
             factory = build_reference_platform
         report = run_all(factory, baseline=baseline)
         write_json(report, REPORTS_DIR / "assurance.json")
-        write_html(report, REPORTS_DIR / "assurance.html")
+        append_history(report)  # continuous monitoring: one line per run
+        write_html(report, REPORTS_DIR / "assurance.html", history=load_history(limit=40))
         write_navigator_layer(report, REPORTS_DIR / "navigator-layer.json")
         write_sarif(report, REPORTS_DIR / "assurance.sarif")
         write_junit(report, REPORTS_DIR / "assurance-junit.xml")

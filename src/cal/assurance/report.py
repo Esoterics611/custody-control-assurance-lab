@@ -64,7 +64,36 @@ def _drift_section(report: AssuranceReport) -> str:
     )
 
 
-def render_html(report: AssuranceReport) -> str:
+def _trend_html(history: list[dict] | None) -> str:
+    if not history or len(history) < 2:
+        return ""
+    points = history[-40:]
+    scores = [int(p.get("posture_score", 0)) for p in points]
+    width, height, pad = 260, 40, 4
+    n = len(scores)
+    step = (width - 2 * pad) / (n - 1)
+    coords = [
+        (pad + i * step, height - pad - (height - 2 * pad) * (s / 100))
+        for i, s in enumerate(scores)
+    ]
+    poly = " ".join(f"{x:.1f},{y:.1f}" for x, y in coords)
+    last_color = "var(--green)" if scores[-1] == 100 else "var(--red)"
+    dots = "".join(
+        f'<circle cx="{x:.1f}" cy="{y:.1f}" r="1.6" fill="{last_color if i == n - 1 else "var(--mut)"}"/>'
+        for i, (x, y) in enumerate(coords)
+    )
+    return f"""
+  <div class="section-title">Posture trend · last {n} runs</div>
+  <div class="cov" data-testid="posture-trend">
+    <svg width="{width}" height="{height}" viewBox="0 0 {width} {height}">
+      <polyline fill="none" stroke="{last_color}" stroke-width="1.5" points="{poly}"/>
+      {dots}
+    </svg>
+    <span class="muted" style="margin-left:12px">latest {scores[-1]}/100 · range {min(scores)}–{max(scores)}</span>
+  </div>"""
+
+
+def render_html(report: AssuranceReport, history: list[dict] | None = None) -> str:
     summary_state = "ok" if report.all_passed else "bad"
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -74,7 +103,7 @@ def render_html(report: AssuranceReport) -> str:
 <title>Custody Control Assurance — Report</title>
 <style>
   :root {{ --bg:#0b0f14; --panel:#121a24; --line:#1f2b3a; --ink:#d7e2ef; --mut:#7f93a8;
-           --amber:#ffb020; --green:#39d98a; --red:#ff5d6c; }}
+           --amber:#ffb020; --green:#39d98a; --red:#ff5d6c; --blue:#9fdcff; }}
   * {{ box-sizing:border-box; }}
   body {{ margin:0; background:var(--bg); color:var(--ink);
           font-family:"SFMono-Regular",ui-monospace,Menlo,Consolas,monospace; }}
@@ -149,6 +178,7 @@ def render_html(report: AssuranceReport) -> str:
   <div class="rating {summary_state}" data-testid="risk-rating">Risk posture: <b>{html.escape(report.risk_rating)}</b> · severity-weighted across {report.passed + report.failed} evaluated controls</div>
 
   {_drift_section(report)}
+  {_trend_html(history)}
 
   <div class="section-title">Control status</div>
   <div class="grid" data-testid="control-grid">
@@ -175,8 +205,10 @@ def render_html(report: AssuranceReport) -> str:
 """
 
 
-def write_html(report: AssuranceReport, path: Path | str) -> Path:
+def write_html(
+    report: AssuranceReport, path: Path | str, history: list[dict] | None = None
+) -> Path:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(render_html(report))
+    path.write_text(render_html(report, history=history))
     return path

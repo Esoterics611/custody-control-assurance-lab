@@ -12,9 +12,11 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from pydantic import BaseModel, Field
 
+from cal.api.metrics import CONTENT_TYPE, prometheus_metrics
+from cal.assurance.history import load_history
 from cal.assurance.runner import run_all
 from cal.clock import system_clock
 from cal.custody.platform import CustodyPlatform
@@ -140,6 +142,15 @@ def create_app() -> FastAPI:
         report = run_all()
         holder["last_report"] = report
         return report.to_dict()
+
+    @app.get("/metrics")
+    def metrics():
+        # Prometheus scrape: run the mock suite fresh (deterministic, fast).
+        return PlainTextResponse(prometheus_metrics(run_all()), media_type=CONTENT_TYPE)
+
+    @app.get("/assurance/history")
+    def assurance_history():
+        return {"history": load_history(limit=50)}
 
     @app.get("/assurance/report")
     def last_report():
