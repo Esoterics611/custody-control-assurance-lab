@@ -1,0 +1,47 @@
+# DELIBERATELY WEAKENED policy — used ONLY by scripts/demo.sh to prove the assurance
+# harness DETECTS a regression. Two edits relative to the reference policy:
+#   * the large-amount approval threshold is raised so high it never fires
+#   * the velocity cap rule has been removed entirely
+# Re-running assurance against this file regresses FIVE controls and reports drift:
+#   C-03 (over-limit) + C-04 (velocity) + C-05 (shadowing) fail directly, and
+#   C-11 (self-approval) + C-12 (quorum-intact) fail by cascade — the large-transfer
+# escalation they depend on no longer fires. That systemic blast-radius is exactly
+# what continuous control validation is meant to surface.
+
+groups:
+  treasury_admins: ["alice", "bob", "carol"]
+  traders: ["dave", "erin"]
+
+rules:
+  - name: block_transfer_to_unmanaged_contract
+    destination_types: [UNMANAGED_CONTRACT]
+    tx_types: [TRANSFER]
+    action: BLOCK
+
+  - name: govern_contract_interaction_unmanaged
+    destination_types: [UNMANAGED_CONTRACT]
+    tx_types: [CONTRACT_CALL, APPROVE]
+    action: REQUIRE_APPROVAL
+    required_approvals: 2
+    approver_group: treasury_admins
+
+  # REGRESSION: threshold raised to an unreachable value -> large transfers auto-sign.
+  - name: large_amount_dual_approval
+    min_amount_usd: "100000000000"
+    action: REQUIRE_APPROVAL
+    required_approvals: 2
+    approver_group: treasury_admins
+
+  - name: one_time_destination_approval
+    destination_types: [ONE_TIME]
+    min_amount_usd: "10000"
+    action: REQUIRE_APPROVAL
+    required_approvals: 1
+    approver_group: treasury_admins
+
+  # REGRESSION: the velocity_cap_rolling_window rule has been deleted.
+
+  - name: allow_whitelisted_internal
+    destination_types: [WHITELISTED, INTERNAL_VAULT]
+    tx_types: [TRANSFER]
+    action: ALLOW

@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from cal.assurance.report import write_html, write_json  # noqa: E402
 from cal.assurance.runner import run_all  # noqa: E402
+from cal.custody.reference import build_reference_platform  # noqa: E402
 
 REPORTS_DIR = Path(__file__).resolve().parents[1] / "reports"
 
@@ -37,9 +38,23 @@ def _load_baseline(path: Path | None) -> dict[str, bool] | None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run custody control assurance (BAS).")
     parser.add_argument("--baseline", type=Path, default=None, help="prior report for drift")
+    parser.add_argument(
+        "--policy",
+        type=Path,
+        default=None,
+        help="alternate TAP policy file (used to demonstrate drift detection)",
+    )
     args = parser.parse_args()
 
-    report = run_all(baseline=_load_baseline(args.baseline))
+    if args.policy:
+
+        def factory():
+            return build_reference_platform(policy_path=args.policy)
+
+    else:
+        factory = build_reference_platform
+
+    report = run_all(factory, baseline=_load_baseline(args.baseline))
 
     json_path = write_json(report, REPORTS_DIR / "assurance.json")
     html_path = write_html(report, REPORTS_DIR / "assurance.html")
