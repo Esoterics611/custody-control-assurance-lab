@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# uv / venv
+.venv/
+uv.lock
+
+# Playwright / Node
+node_modules/
+tests/e2e/node_modules/
+tests/e2e/test-results/
+tests/e2e/playwright-report/
+tests/e2e/.playwright/
+
+# Reports / artifacts
+allure-results/
+reports/*.json
+reports/*.html
+
+# Env / secrets (NEVER commit real secrets — this lab uses none)
+.env
