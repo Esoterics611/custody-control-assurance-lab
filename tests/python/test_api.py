@@ -39,6 +39,20 @@ def test_healthz(client):
     assert resp.json()["status"] == "ok"
 
 
+def test_admin_reset_restores_default_policy(client):
+    # Apply a loosening change, then reset and confirm the default policy is back.
+    client.post(
+        "/policy/change",
+        json={
+            "new_rules": [{"name": "allow_all", "action": "ALLOW"}],
+            "approver_ids": ["alice", "bob"],
+        },
+    )
+    assert client.post("/admin/reset").json()["status"] == "reset"
+    names = [r["name"] for r in client.get("/policy").json()["rules"]]
+    assert "large_amount_dual_approval" in names
+
+
 def test_clean_transfer_is_signed(client):
     resp = client.post("/transactions", json=_tx())
     assert resp.status_code == 200

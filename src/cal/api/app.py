@@ -15,8 +15,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 
-from cal.assurance.runner import AssuranceReport, run_all
+from cal.assurance.runner import run_all
 from cal.clock import system_clock
+from cal.custody.platform import CustodyPlatform
 from cal.custody.policy_engine import PolicyEngine, PolicyRule
 from cal.custody.policy_loader import rule_from_dict
 from cal.custody.rbac import QuorumError
@@ -75,8 +76,15 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    platform = build_reference_platform()
-    state: dict[str, AssuranceReport | None] = {"last_report": None}
+    # Mutable holder so /admin/reset can swap in a fresh platform (used by the E2E
+    # suite for per-test isolation and by the demo's "restore" step).
+    holder: dict[str, object] = {
+        "platform": build_reference_platform(),
+        "last_report": None,
+    }
+
+    def current() -> CustodyPlatform:
+        return holder["platform"]  # type: ignore[return-value]
 
     @app.get("/", include_in_schema=False)
     def index():
@@ -87,6 +95,13 @@ def create_app() -> FastAPI:
     @app.get("/healthz")
     def healthz():
         return {"status": "ok", "controls": "loaded"}
+
+    @app.post("/admin/reset")
+    def admin_reset():
+        """Rebuild the in-memory reference platform (clears history + restores policy)."""
+        holder["platform"] = build_reference_platform()
+        holder["last_report"] = None
+        return {"status": "reset"}
 
     @app.post("/transactions")
     def submit_transaction(body: TransactionBody):
@@ -100,35 +115,35 @@ def create_app() -> FastAPI:
             submitted_at=system_clock(),
             tx_type=body.tx_type,
         )
-        result = platform.submit(request, approver_ids=body.approver_ids)
+        result = current().submit(request, approver_ids=body.approver_ids)
         return result.to_dict()
 
     @app.get("/policy")
     def get_policy():
-        return {"rules": _serialize_policy(platform.policy_engine)}
+        return {"rules": _serialize_policy(current().policy_engine)}
 
     @app.post("/policy/change")
     def change_policy(body: PolicyChangeBody):
         try:
             rules = [rule_from_dict(r) for r in body.new_rules]
-            admins = platform.change_policy(rules, approver_ids=body.approver_ids)
+            admins = current().change_policy(rules, approver_ids=body.approver_ids)
         except QuorumError as exc:
             return JSONResponse(status_code=403, content={"error": str(exc)})
         return {
             "status": "applied",
             "authorized_by": sorted(admins),
-            "rules": _serialize_policy(platform.policy_engine),
+            "rules": _serialize_policy(current().policy_engine),
         }
 
     @app.post("/assurance/run")
     def run_assurance():
         report = run_all()
-        state["last_report"] = report
+        holder["last_report"] = report
         return report.to_dict()
 
     @app.get("/assurance/report")
     def last_report():
-        report = state["last_report"]
+        report = holder["last_report"]
         if report is None:
             return JSONResponse(
                 status_code=404, content={"error": "no report yet; POST /assurance/run"}
