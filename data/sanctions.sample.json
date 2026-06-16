@@ -1,0 +1,15 @@
+{
+  "_comment": "SYNTHETIC TEST DATA — NOT A REAL SANCTIONS LIST. Fabricated addresses, scores, and categories for control validation only. Do not use for any real screening. Modeled in spirit on nexus-protocol's RestrictionList / OFAC denylist concept.",
+  "schema": {
+    "score": "0-100 risk score; >= risk_ceiling (default 75) is a hard block",
+    "categories": "sanctioned categories (OFAC_SANCTION, SANCTIONS, TERROR_FINANCING) are an unconditional block regardless of score"
+  },
+  "addresses": [
+    { "address": "0xSANCTIONED00000000000000000000000000000001", "score": 100, "categories": ["OFAC_SANCTION"] },
+    { "address": "0xMIXER0000000000000000000000000000000000002", "score": 90, "categories": ["MIXER", "HIGH_RISK"] },
+    { "address": "0xSCAM00000000000000000000000000000000000003", "score": 80, "categories": ["SCAM"] },
+    { "address": "0xTERROR000000000000000000000000000000000004", "score": 100, "categories": ["TERROR_FINANCING"] },
+    { "address": "0xWATCH75000000000000000000000000000000000005", "score": 75, "categories": ["WATCHLIST"] },
+    { "address": "0xWATCH74000000000000000000000000000000000006", "score": 74, "categories": ["WATCHLIST"] }
+  ]
+}
