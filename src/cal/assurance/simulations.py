@@ -292,6 +292,82 @@ def sim_quorum_bypass(platform: CustodyPlatform) -> SimResult:
     )
 
 
+# --- C-13 -------------------------------------------------------------------
+def sim_replay_protection(platform: CustodyPlatform) -> SimResult:
+    # Attacker captures a signed request and re-submits the identical request_id.
+    original = _tx(amount="5000")
+    first = platform.submit(original)
+    replay = platform.submit(original)  # same request_id
+    passed = (
+        first.signed
+        and replay.decision is Decision.BLOCK
+        and replay.stage == "replay"
+        and not replay.signed
+    )
+    return SimResult(
+        "C-13",
+        passed,
+        expected="first signed, replay BLOCK @ replay",
+        observed=f"first.signed={first.signed}, replay={_observed(replay)}",
+        detail=replay.reason,
+    )
+
+
+# --- C-14 -------------------------------------------------------------------
+def sim_decimal_precision(platform: CustodyPlatform) -> SimResult:
+    # A high-precision amount a hair UNDER the 100k limit must not be rounded up
+    # into the approval band (which a float would do). Exact Decimal -> ALLOW.
+    under = platform.submit(_tx(amount="99999.999999999999"))
+    # And a hair OVER must still escalate (exact comparison, no precision loss).
+    over = platform.submit(_tx(amount="100000.000000000001"))
+    passed = (
+        under.decision is Decision.ALLOW
+        and under.signed
+        and over.decision is Decision.REQUIRE_APPROVAL
+    )
+    return SimResult(
+        "C-14",
+        passed,
+        expected="sub-cent under-limit ALLOWs; hair-over escalates (exact Decimal)",
+        observed=f"under={under.decision.value}, over={over.decision.value}",
+        detail="no float coercion of money",
+    )
+
+
+# --- C-15 -------------------------------------------------------------------
+def sim_address_normalization_bypass(platform: CustodyPlatform) -> SimResult:
+    # Attacker submits the sanctioned address in UPPER case hoping to dodge the
+    # (lower-cased) denylist lookup.
+    result = platform.submit(_tx(amount="5000", destination=ADDR_SANCTIONED.upper()))
+    passed = result.decision is Decision.BLOCK and result.stage == "screening"
+    return SimResult(
+        "C-15",
+        passed,
+        expected="BLOCK @ screening despite case-varied address",
+        observed=_observed(result),
+        detail=result.reason,
+    )
+
+
+# --- C-16 -------------------------------------------------------------------
+def sim_approver_set_integrity(platform: CustodyPlatform) -> SimResult:
+    # Attacker pads the approver list with the SAME approver repeated, hoping the
+    # duplicates count toward the 2-of-N threshold.
+    result = platform.submit(_tx(amount="150000"), approver_ids=["bob", "bob", "bob"])
+    passed = (
+        result.decision is Decision.REQUIRE_APPROVAL
+        and result.stage == "approval"
+        and not result.signed
+    )
+    return SimResult(
+        "C-16",
+        passed,
+        expected="REQUIRE_APPROVAL (duplicate approver counts once)",
+        observed=_observed(result),
+        detail=result.reason,
+    )
+
+
 SIMULATIONS: dict[str, Callable[[CustodyPlatform], SimResult]] = {
     "sim_default_deny": sim_default_deny,
     "sim_non_whitelisted_dest": sim_non_whitelisted_dest,
@@ -305,6 +381,10 @@ SIMULATIONS: dict[str, Callable[[CustodyPlatform], SimResult]] = {
     "sim_rbac_denied": sim_rbac_denied,
     "sim_self_approval": sim_self_approval,
     "sim_quorum_bypass": sim_quorum_bypass,
+    "sim_replay_protection": sim_replay_protection,
+    "sim_decimal_precision": sim_decimal_precision,
+    "sim_address_normalization_bypass": sim_address_normalization_bypass,
+    "sim_approver_set_integrity": sim_approver_set_integrity,
 }
 
 

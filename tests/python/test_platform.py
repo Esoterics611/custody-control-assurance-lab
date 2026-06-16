@@ -54,6 +54,27 @@ def test_clean_under_limit_transfer_is_signed(platform):
     assert result.tx_hash is not None
 
 
+def test_replayed_request_id_is_rejected(platform):
+    request = make_request(amount="5000")
+    first = platform.submit(request)
+    assert first.signed is True
+    # Re-submitting the identical request (same request_id) must be blocked.
+    replay = platform.submit(request)
+    assert replay.decision is Decision.BLOCK
+    assert replay.stage == "replay"
+    assert replay.signed is False
+
+
+def test_pending_request_can_still_be_resubmitted_with_approvals(platform):
+    # A REQUIRE_APPROVAL request did not execute, so its id is NOT a replay.
+    request = make_request(amount="150000")
+    pending = platform.submit(request)
+    assert pending.decision is Decision.REQUIRE_APPROVAL
+    completed = platform.submit(request, approver_ids=["alice", "bob"])
+    assert completed.decision is Decision.ALLOW
+    assert completed.signed is True
+
+
 def test_unauthorized_initiator_blocked_at_rbac(platform):
     # frank holds no INITIATOR role.
     result = platform.submit(make_request(amount="5000", initiator="frank"))

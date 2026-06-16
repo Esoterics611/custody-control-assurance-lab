@@ -116,6 +116,38 @@ CONTROL_REGISTRY: tuple[Control, ...] = (
         ("GV.RR", "GV.PO"),
         "sim_quorum_bypass",
     ),
+    Control(
+        "C-13",
+        "Replay/idempotency: an executed request cannot be replayed",
+        "Pipeline",
+        ("T1565",),
+        ("PR.DS",),
+        "sim_replay_protection",
+    ),
+    Control(
+        "C-14",
+        "Decimal-precision integrity: sub-cent amounts handled exactly (no float)",
+        "Policy",
+        (),
+        ("PR.DS",),
+        "sim_decimal_precision",
+    ),
+    Control(
+        "C-15",
+        "Address-normalization: case-varied sanctioned address still blocked",
+        "Screening",
+        ("T1657",),
+        ("DE.AE",),
+        "sim_address_normalization_bypass",
+    ),
+    Control(
+        "C-16",
+        "Approver-set integrity: duplicate approvers cannot inflate the count",
+        "Approval",
+        ("T1548",),
+        ("GV.RR",),
+        "sim_approver_set_integrity",
+    ),
 )
 
 

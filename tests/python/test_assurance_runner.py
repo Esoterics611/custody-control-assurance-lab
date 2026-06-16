@@ -19,7 +19,7 @@ CLOCK = FixedClock(1_700_000_500.0)
 
 def test_all_controls_pass_against_reference_platform():
     report = run_all(clock=CLOCK)
-    assert report.total == len(CONTROL_REGISTRY) == 12
+    assert report.total == len(CONTROL_REGISTRY) == 16
     assert report.all_passed, f"unexpected failures: {report.failures}"
     assert report.failed == 0
 

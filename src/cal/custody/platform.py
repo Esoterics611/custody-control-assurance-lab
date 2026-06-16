@@ -31,6 +31,7 @@ class CustodyPlatform:
     policy_engine: PolicyEngine
     governor: PolicyChangeGovernor
     history: list[TransactionRequest] = field(default_factory=list)
+    processed_ids: set[str] = field(default_factory=set)
 
     def submit(
         self, request: TransactionRequest, approver_ids: list[str] | None = None
@@ -38,6 +39,15 @@ class CustodyPlatform:
         result = PipelineResult(
             request_id=request.request_id, decision=Decision.BLOCK, stage="rbac"
         )
+
+        # --- Stage 0: replay / idempotency -------------------------------------
+        # A request_id that already reached the signer cannot be executed again.
+        if request.request_id in self.processed_ids:
+            result.stage = "replay"
+            result.decision = Decision.BLOCK
+            result.reason = f"replay rejected: request_id {request.request_id} already executed"
+            result.alerts.append(f"REPLAY ALERT: duplicate request_id {request.request_id}")
+            return result
 
         # --- Stage 1: RBAC / authorization -------------------------------------
         if not self.access.has_role(request.initiator, ROLE_INITIATOR):
@@ -100,6 +110,7 @@ class CustodyPlatform:
         result.tx_hash = f"0xMOCKSIG{request.request_id.replace('-', '')[:24]}"
         result.reason = "approved and signed (mock)"
         self.history.append(request)
+        self.processed_ids.add(request.request_id)
         return result
 
     def change_policy(

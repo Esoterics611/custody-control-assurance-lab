@@ -119,9 +119,9 @@ class TestAssuranceEndpoints:
         resp = client.post("/assurance/run")
         assert resp.status_code == 200
         data = resp.json()
-        assert data["summary"]["total"] == 12
+        assert data["summary"]["total"] == 16
         assert data["summary"]["all_passed"] is True
-        assert len(data["outcomes"]) == 12
+        assert len(data["outcomes"]) == 16
 
     def test_report_404_before_first_run(self, client):
         assert client.get("/assurance/report").status_code == 404
@@ -130,4 +130,4 @@ class TestAssuranceEndpoints:
         client.post("/assurance/run")
         resp = client.get("/assurance/report")
         assert resp.status_code == 200
-        assert resp.json()["summary"]["total"] == 12
+        assert resp.json()["summary"]["total"] == 16

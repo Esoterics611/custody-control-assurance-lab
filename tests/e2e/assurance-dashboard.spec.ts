@@ -1,10 +1,10 @@
 import { test, expect } from "./fixtures";
 
 test.describe("Control assurance dashboard", () => {
-  test("running assurance renders a 12-control grid with coverage", async ({ console }) => {
+  test("running assurance renders a 16-control grid with coverage", async ({ console }) => {
     await console.runAssurance();
 
-    await expect(console.controlCells()).toHaveCount(12);
+    await expect(console.controlCells()).toHaveCount(16);
     await expect(console.csfCoverage()).toContainText("PR.AA");
     await expect(console.mitreCoverage()).toContainText("T1657");
   });
@@ -14,7 +14,7 @@ test.describe("Control assurance dashboard", () => {
 
     const cells = console.controlCells();
     const count = await cells.count();
-    expect(count).toBe(12);
+    expect(count).toBe(16);
     for (let i = 0; i < count; i++) {
       await expect(cells.nth(i)).toHaveAttribute("data-state", "pass");
     }

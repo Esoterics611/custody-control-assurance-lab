@@ -18,6 +18,10 @@ The authoritative map of control objective → pipeline stage → MITRE ATT&CK �
 | C-10 | RBAC: non-initiator role cannot submit | Access | T1078 | PR.AA | `sim_rbac_denied` |
 | C-11 | Four-eyes / SoD: initiator cannot self-approve | Approval | T1548 | GV.RR | `sim_self_approval` |
 | C-12 | Admin quorum required to change policy | Governance | T1098 | GV.RR / GV.PO | `sim_quorum_bypass` |
+| C-13 | Replay/idempotency: an executed request cannot be replayed | Pipeline | T1565 | PR.DS | `sim_replay_protection` |
+| C-14 | Decimal-precision integrity: sub-cent amounts handled exactly | Policy | — | PR.DS | `sim_decimal_precision` |
+| C-15 | Address-normalization: case-varied sanctioned address still blocked | Screening | T1657 | DE.AE | `sim_address_normalization_bypass` |
+| C-16 | Approver-set integrity: duplicate approvers cannot inflate the count | Approval | T1548 | GV.RR | `sim_approver_set_integrity` |
 
 A simulation **passes** when the control behaved correctly (the attack was blocked,
 escalated, denied, or flagged) — never when the attack succeeded. We never weaken a
@@ -114,6 +118,36 @@ self-approval is dropped, leaving the transaction `REQUIRE_APPROVAL` (pending).
 **Threat.** A single admin unilaterally loosening controls (the highest-leverage attack).
 **Validation.** `sim_quorum_bypass` attempts a single-admin policy change; the governor
 raises `QuorumError` and the simulation confirms the policy is unchanged afterwards.
+
+## C-13 — Replay / idempotency
+**Objective.** A request that already reached the signer cannot be executed a second time.
+**Threat.** Replaying a captured/duplicated signed request to double-spend.
+**Validation.** `sim_replay_protection` submits a transfer (signed), then re-submits the
+identical `request_id`; the second submission is `BLOCK @ replay`. Pending
+(REQUIRE_APPROVAL) requests are *not* treated as replays — they can be resubmitted with
+approvals to complete.
+
+## C-14 — Decimal-precision integrity
+**Objective.** Money is exact `Decimal`; sub-cent amounts are never coerced through float.
+**Threat.** A precision-rounding error that misclassifies an amount across a limit boundary
+(either letting an over-limit transfer through, or wrongly escalating a valid one).
+**Validation.** `sim_decimal_precision` submits `99999.999999999999` (a hair under the
+100k limit) and asserts it ALLOWs — a float would round it to `100000.0` and escalate — and
+`100000.000000000001` still escalates. Exact comparison either way.
+
+## C-15 — Address-normalization bypass
+**Objective.** The denylist matches regardless of address casing.
+**Threat.** Supplying a sanctioned address in mixed/upper case to dodge a case-sensitive
+lookup.
+**Validation.** `sim_address_normalization_bypass` submits the sanctioned address
+upper-cased; screening lower-cases before lookup, so it is still `BLOCK @ screening`.
+
+## C-16 — Approver-set integrity
+**Objective.** Only distinct, valid approvers count toward the X-of-N threshold.
+**Threat.** Padding the approver list with the same approver repeated to fake a quorum.
+**Validation.** `sim_approver_set_integrity` submits a large transfer with one approver
+listed three times; de-duplication leaves a single valid approval (< 2), so it stays
+`REQUIRE_APPROVAL`.
 
 ---
 
