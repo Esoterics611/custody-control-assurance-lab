@@ -1,0 +1,59 @@
+# Default Transaction Authorization Policy (TAP) for the reference custody platform.
+#
+# ORDER MATTERS. Rules are evaluated top-down; the FIRST match wins and is the only
+# rule applied. Anything that matches no rule is BLOCKED (default-deny). The ordering
+# below deliberately places restrictive/escalating rules ABOVE the permissive baseline
+# allow so a large or risky transfer can never be shadowed by the allow rule.
+
+groups:
+  treasury_admins: ["alice", "bob", "carol"]
+  traders: ["dave", "erin"]
+
+rules:
+  # 1. Hard-block raw value movement to an unmanaged (non-allowlisted) contract.
+  - name: block_transfer_to_unmanaged_contract
+    destination_types: [UNMANAGED_CONTRACT]
+    tx_types: [TRANSFER]
+    action: BLOCK
+
+  # 2. Type-confusion guard: contract calls / token approvals to unmanaged contracts
+  #    are GOVERNED (escalated), never silently allowed — an attacker cannot dodge the
+  #    transfer controls by switching tx_type.
+  - name: govern_contract_interaction_unmanaged
+    destination_types: [UNMANAGED_CONTRACT]
+    tx_types: [CONTRACT_CALL, APPROVE]
+    action: REQUIRE_APPROVAL
+    required_approvals: 2
+    approver_group: treasury_admins
+
+  # 3. Large transfers require dual approval regardless of destination (boundary: >=).
+  - name: large_amount_dual_approval
+    min_amount_usd: "100000"
+    action: REQUIRE_APPROVAL
+    required_approvals: 2
+    approver_group: treasury_admins
+
+  # 4. One-time (non-allowlisted) destinations above a small threshold escalate.
+  - name: one_time_destination_approval
+    destination_types: [ONE_TIME]
+    min_amount_usd: "10000"
+    action: REQUIRE_APPROVAL
+    required_approvals: 1
+    approver_group: treasury_admins
+
+  # 5. Velocity cap: cumulative egress from vault "0" exceeding 250k in 3600s escalates.
+  - name: velocity_cap_rolling_window
+    source_vaults: ["0"]
+    period_sec: 3600
+    window_limit_usd: "250000"
+    action: REQUIRE_APPROVAL
+    required_approvals: 2
+    approver_group: treasury_admins
+
+  # 6. Baseline allow: ordinary transfers to allowlisted / internal destinations,
+  #    under all the limits above.
+  - name: allow_whitelisted_internal
+    destination_types: [WHITELISTED, INTERNAL_VAULT]
+    tx_types: [TRANSFER]
+    action: ALLOW
+  # (anything else falls through to default-deny BLOCK)
